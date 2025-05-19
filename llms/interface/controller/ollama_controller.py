@@ -33,7 +33,9 @@ async def chat(
 async def achat(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    user: User = Depends(get_current_user),
 ):
+    print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
     result: PromptResponse = await ollama_service.chat_async(prompt)
     return OllamaResponse(
@@ -63,7 +65,9 @@ async def stream(
 async def astream(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    user: User = Depends(get_current_user),
 ):
+    print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
     result = await ollama_service.chat_stream_async(prompt)
     return StreamingResponse(
