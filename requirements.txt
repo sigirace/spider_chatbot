@@ -1,0 +1,13 @@
+uvicorn==0.34.2
+fastapi==0.115.12
+mcp==1.9.0
+motor==3.7.1
+langchain==0.3.25
+langchain-community==0.3.24
+langchain-core==0.3.60
+langchain-text-splitters==0.3.8
+dependency-injector==4.46.0
+starlette-context==0.4.0
+python-jose==3.4.0
+passlib==1.7.4
+bcrypt==4.0.1
