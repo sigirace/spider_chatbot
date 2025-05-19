@@ -1,38 +1,19 @@
-"""
-MCP SSE Client - A Python client for interacting with Model Context Protocol (MCP) endpoints.
-
-This module provides a client for connecting to MCP endpoints using Server-Sent Events (SSE),
-listing available tools, and invoking tools with parameters.
-"""
-
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from urllib.parse import urlparse
 from mcp import ClientSession
 from mcp.client.sse import sse_client
-from pydantic import BaseModel
 
-from client.dto import ToolDef, ToolInvocationResult, ToolParameter
+from client.domain.model.tool import ToolDef, ToolParameter, ToolInvocationResult
+from client.domain.repository.client_repository import IClientRepository
 
 
-class MCPClient:
-    """Client for interacting with Model Context Protocol (MCP) endpoints"""
-
+class ClientRepository(IClientRepository):
     def __init__(self, endpoint: str):
-        """Initialize MCP client with endpoint URL
-
-        Args:
-            endpoint: The MCP endpoint URL (must be http or https)
-        """
         if urlparse(endpoint).scheme not in ("http", "https"):
             raise ValueError(f"Endpoint {endpoint} is not a valid HTTP(S) URL")
         self.endpoint = endpoint
 
     async def list_tools(self) -> List[ToolDef]:
-        """List available tools from the MCP endpoint
-
-        Returns:
-            List of ToolDef objects describing available tools
-        """
         tools = []
         async with sse_client(self.endpoint) as streams:
             async with ClientSession(*streams) as session:
@@ -60,7 +41,7 @@ class MCPClient:
                             description=tool.description,
                             parameters=parameters,
                             metadata={"endpoint": self.endpoint},
-                            identifier=tool.name,  # Using name as identifier
+                            identifier=tool.name,
                         )
                     )
         return tools
@@ -68,15 +49,6 @@ class MCPClient:
     async def invoke_tool(
         self, tool_name: str, kwargs: Dict[str, Any], token: str
     ) -> ToolInvocationResult:
-        """Invoke a specific tool with parameters
-
-        Args:
-            tool_name: Name of the tool to invoke
-            kwargs: Dictionary of parameters to pass to the tool
-
-        Returns:
-            ToolInvocationResult containing the tool's response
-        """
         async with sse_client(
             self.endpoint, headers={"Authorization": f"Bearer {token}"}
         ) as streams:
@@ -85,6 +57,6 @@ class MCPClient:
                 result = await session.call_tool(tool_name, kwargs)
 
         return ToolInvocationResult(
-            content="\n".join([result.model_dump_json() for result in result.content]),
+            content="\n".join([r.model_dump_json() for r in result.content]),
             error_code=1 if result.isError else 0,
         )

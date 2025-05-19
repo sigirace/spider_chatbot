@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from users.domain.model.user import User
+from fastapi.security import HTTPBearer
+from users.domain.model.user import AuthUser, User
 from users.domain.repository.user_repository import IUserRepository
 from users.infra.repository.user_repository_impl import UserRepository
 from utils.crypto import Crypto
@@ -57,16 +57,20 @@ class UserService:
             )
         return user
 
-    async def get_user(self, token: str) -> User:
+    async def get_user(self, token: str) -> AuthUser:
         try:
             payload = decode_token(token)
-            user = await self.user_repo.get_by_user_id(payload["user_id"])
+            user: User | None = await self.user_repo.get_by_user_id(payload["user_id"])
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid authentication, user not found",
                 )
-            return user
+            return AuthUser(
+                user_id=user.user_id,
+                user_name=user.user_name,
+                access_token=token,
+            )
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

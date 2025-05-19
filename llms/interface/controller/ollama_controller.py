@@ -5,7 +5,7 @@ from containers import Container
 from llms.application.ollama_service import OllamaService
 from llms.domain.ollama_schema import PromptRequest, PromptResponse
 from llms.interface.dto.ollama_dto import OllamaRequest, OllamaResponse
-from users.domain.model.user import User
+from users.domain.model.user import AuthUser, User
 from users.interface.controller.user_depends import get_current_user
 from dependency_injector.wiring import inject, Provide
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/llms")
 async def chat(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
-    user: User = Depends(get_current_user),
+    user: AuthUser = Depends(get_current_user),
 ):
     # 인증된 사용자 정보 사용 가능
     print(f"[DEBUG] Authenticated user: {user.user_id}")
@@ -33,7 +33,7 @@ async def chat(
 async def achat(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
-    user: User = Depends(get_current_user),
+    user: AuthUser = Depends(get_current_user),
 ):
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
@@ -48,7 +48,7 @@ async def achat(
 async def stream(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
-    user: User = Depends(get_current_user),
+    user: AuthUser = Depends(get_current_user),
 ):
     # 인증된 사용자 정보 사용 가능
     print(f"[DEBUG] Authenticated user: {user.user_id}")
@@ -65,7 +65,7 @@ async def stream(
 async def astream(
     request: OllamaRequest,
     ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
-    user: User = Depends(get_current_user),
+    user: AuthUser = Depends(get_current_user),
 ):
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())

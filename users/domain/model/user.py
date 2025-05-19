@@ -8,6 +8,10 @@ class BaseUser(BaseModel):
     user_name: str
 
 
+class AuthUser(BaseUser):
+    access_token: str
+
+
 class User(BaseUser):
     password: str
     created_at: datetime

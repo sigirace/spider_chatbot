@@ -3,7 +3,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from containers import Container
 from users.application.user_service import UserService
-from users.domain.model.user import User
+from users.domain.model.user import AuthUser
 
 security = HTTPBearer()
 
@@ -12,5 +12,5 @@ security = HTTPBearer()
 async def get_current_user(
     cred: HTTPAuthorizationCredentials = Depends(security),
     user_service: UserService = Depends(Provide[Container.user_service]),
-) -> User:
+) -> AuthUser:
     return await user_service.get_user(cred.credentials)

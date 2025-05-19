@@ -1,5 +1,7 @@
 from dependency_injector import containers, providers
 
+from client.application.client_service import ClientService
+from client.infra.api.client_repository_impl import ClientRepository
 from llms.application.ollama_service import OllamaService
 from llms.infra.ollama_api import OllamaLLM
 from users.application.token_service import TokenService
@@ -12,6 +14,7 @@ class Container(containers.DeclarativeContainer):
         packages=[
             "users",
             "llms",
+            "client",
         ],
     )
 
@@ -30,4 +33,14 @@ class Container(containers.DeclarativeContainer):
     ollama_service = providers.Factory(
         OllamaService,
         llm=ollama_llm,
+    )
+
+    mcp_client = providers.Singleton(
+        ClientRepository,
+        endpoint="http://localhost:8001/sse",
+    )
+
+    client_service = providers.Factory(
+        ClientService,
+        repository=mcp_client,
     )

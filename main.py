@@ -12,6 +12,9 @@ from fastapi.openapi.docs import (
 
 from users.interface.controller.user_controller import router as user_router
 from llms.interface.controller.ollama_controller import router as ollama_router
+from client.interface.controller.mcp_client_controller import (
+    router as mcp_client_router,
+)
 from containers import Container
 
 prefix = "/chat-api"
@@ -34,6 +37,7 @@ def create_app():
     api_router = APIRouter(prefix=prefix)
     api_router.include_router(user_router, tags=["Users"])
     api_router.include_router(ollama_router, tags=["Ollama"])
+    api_router.include_router(mcp_client_router, tags=["MCP"])
     app.include_router(api_router)
 
     app.add_middleware(
@@ -48,6 +52,7 @@ def create_app():
             "users.interface.controller.user_controller",
             "users.interface.controller.user_depends",
             "llms.interface.controller.ollama_controller",
+            "client.interface.controller.mcp_client_controller",
         ]
     )
     app.container = container
