@@ -11,9 +11,8 @@ from fastapi.openapi.docs import (
 )
 
 from users.interface.controller.user_controller import router as user_router
-
+from llms.interface.controller.ollama_controller import router as ollama_router
 from containers import Container
-
 
 prefix = "/chat-api"
 
@@ -34,6 +33,7 @@ def create_app():
     # 공통 prefix 라우터
     api_router = APIRouter(prefix=prefix)
     api_router.include_router(user_router, tags=["Users"])
+    api_router.include_router(ollama_router, tags=["Ollama"])
     app.include_router(api_router)
 
     app.add_middleware(
@@ -46,6 +46,8 @@ def create_app():
         modules=[
             "utils.jwt",
             "users.interface.controller.user_controller",
+            "users.interface.controller.user_depends",
+            "llms.interface.controller.ollama_controller",
         ]
     )
     app.container = container

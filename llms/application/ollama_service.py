@@ -25,5 +25,4 @@ class OllamaService:
         self, request: PromptRequest
     ) -> AsyncGenerator[str, None]:
         human_message = request.to_human_message()
-        async for chunk in self.llm.chat_stream_async([human_message]):
-            yield chunk
+        return self.llm.chat_stream_async([human_message])

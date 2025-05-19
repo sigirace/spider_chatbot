@@ -44,7 +44,7 @@ class UserService:
         return user
 
     async def login(self, user_id: str, password: str) -> User:
-        user = await self.user_repo.get_by_user_id(user_id)
+        user: User | None = await self.user_repo.get_by_user_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,22 +57,18 @@ class UserService:
             )
         return user
 
-    def get_user(
-        self,
-        cred: HTTPAuthorizationCredentials = Depends(security),
-    ) -> User:
+    async def get_user(self, token: str) -> User:
         try:
-            token = cred.credentials
             payload = decode_token(token)
-            user = self.user_repo.get_by_user_id(payload["user_id"])
+            user = await self.user_repo.get_by_user_id(payload["user_id"])
             if not user:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid authentication",
+                    detail="Invalid authentication, user not found",
                 )
             return user
         except Exception:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication",
+                detail="Invalid authentication, token is invalid",
             )

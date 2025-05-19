@@ -7,61 +7,11 @@ listing available tools, and invoking tools with parameters.
 
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
-from dataclasses import dataclass
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from pydantic import BaseModel
 
-
-@dataclass
-class ToolParameter:
-    """Represents a parameter for a tool.
-
-    Attributes:
-        name: Parameter name
-        parameter_type: Parameter type (e.g., "string", "number")
-        description: Parameter description
-        required: Whether the parameter is required
-        default: Default value for the parameter
-    """
-
-    name: str
-    parameter_type: str
-    description: str
-    required: bool = False
-    default: Any = None
-
-
-@dataclass
-class ToolDef:
-    """Represents a tool definition.
-
-    Attributes:
-        name: Tool name
-        description: Tool description
-        parameters: List of ToolParameter objects
-        metadata: Optional dictionary of additional metadata
-        identifier: Tool identifier (defaults to name)
-    """
-
-    name: str
-    description: str
-    parameters: List[ToolParameter]
-    metadata: Optional[Dict[str, Any]] = None
-    identifier: str = ""
-
-
-@dataclass
-class ToolInvocationResult:
-    """Represents the result of a tool invocation.
-
-    Attributes:
-        content: Result content as a string
-        error_code: Error code (0 for success, 1 for error)
-    """
-
-    content: str
-    error_code: int
+from client.dto import ToolDef, ToolInvocationResult, ToolParameter
 
 
 class MCPClient:

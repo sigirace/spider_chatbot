@@ -1,5 +1,5 @@
 from typing import List, Generator, AsyncGenerator
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage
 from config import get_settings
 
@@ -26,10 +26,10 @@ class OllamaLLM:
 
     def chat_stream(self, messages: List[BaseMessage]) -> Generator[str, None, None]:
         for chunk in self.llm.stream(messages):
-            yield chunk.content
+            yield f"data: {chunk.content}\n\n"
 
     async def chat_stream_async(
         self, messages: List[BaseMessage]
     ) -> AsyncGenerator[str, None]:
         async for chunk in self.llm.astream(messages):
-            yield chunk.content
+            yield f"data: {chunk.content}\n\n"
