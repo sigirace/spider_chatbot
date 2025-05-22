@@ -1,20 +1,12 @@
 from typing import List, Generator, AsyncGenerator
-from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage
-from config import get_settings
-
-OLLAMA_CONFIG = get_settings().ollama
+from llms.wrapper.haiqv_chat_ollama import HaiqvChatOllama
 
 
-class OllamaLLM:
-    def __init__(self, model: str = OLLAMA_CONFIG.ollama_model):
-        self.llm = ChatOllama(
-            model=model,
-            base_url=self.get_base_url(),
-        )
-
-    def get_base_url(self) -> str:
-        return f"http://{OLLAMA_CONFIG.ollama_host}:{OLLAMA_CONFIG.ollama_port}"
+## 추상화 필요
+class HaiqvLLM:
+    def __init__(self):
+        self.llm = HaiqvChatOllama()
 
     def chat(self, messages: List[BaseMessage]) -> str:
         return self.llm.invoke(messages).content

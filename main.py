@@ -12,15 +12,20 @@ from fastapi.openapi.docs import (
 
 from users.interface.controller.user_controller import router as user_router
 from llms.interface.controller.ollama_controller import router as ollama_router
+from llms.interface.controller.haiqv_controller import router as haiqv_router
 from client.interface.controller.mcp_client_controller import (
     router as mcp_client_router,
 )
 from containers import Container
+from log.log_config import get_logger
+
+logger = get_logger()
 
 prefix = "/chat-api"
 
 
 def create_app():
+    logger.info("[MAIN] Application setup")
     app = FastAPI(
         title="Hello API",
         openapi_url=f"{prefix}/openapi.json",
@@ -37,6 +42,7 @@ def create_app():
     api_router = APIRouter(prefix=prefix)
     api_router.include_router(user_router, tags=["Users"])
     api_router.include_router(ollama_router, tags=["Ollama"])
+    api_router.include_router(haiqv_router, tags=["Haiqv"])
     api_router.include_router(mcp_client_router, tags=["MCP"])
     app.include_router(api_router)
 
@@ -52,6 +58,7 @@ def create_app():
             "users.interface.controller.user_controller",
             "users.interface.controller.user_depends",
             "llms.interface.controller.ollama_controller",
+            "llms.interface.controller.haiqv_controller",
             "client.interface.controller.mcp_client_controller",
         ]
     )

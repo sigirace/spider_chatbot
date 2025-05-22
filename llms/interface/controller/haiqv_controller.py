@@ -2,27 +2,27 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
 from containers import Container
-from llms.application.ollama_service import OllamaService
+from llms.application.haiqv_service import HaiqvService
 from llms.domain.model.llm_schema import PromptRequest, PromptResponse
 from llms.interface.dto.llm_dto import LlmRequest, LlmResponse
 from users.domain.model.user import AuthUser, User
 from users.interface.controller.user_depends import get_current_user
 from dependency_injector.wiring import inject, Provide
 
-router = APIRouter(prefix="/ollama")
+router = APIRouter(prefix="/haiqv")
 
 
 @router.post("/chat")
 @inject
 async def chat(
     request: LlmRequest,
-    ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    haiqv_service: HaiqvService = Depends(Provide[Container.haiqv_service]),
     user: AuthUser = Depends(get_current_user),
 ):
     # 인증된 사용자 정보 사용 가능
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
-    result: PromptResponse = ollama_service.chat(prompt)
+    result: PromptResponse = haiqv_service.chat(prompt)
     return LlmResponse(
         response=result.response,
     )
@@ -32,12 +32,12 @@ async def chat(
 @inject
 async def achat(
     request: LlmRequest,
-    ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    haiqv_service: HaiqvService = Depends(Provide[Container.haiqv_service]),
     user: AuthUser = Depends(get_current_user),
 ):
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
-    result: PromptResponse = await ollama_service.chat_async(prompt)
+    result: PromptResponse = await haiqv_service.chat_async(prompt)
     return LlmResponse(
         response=result.response,
     )
@@ -47,13 +47,13 @@ async def achat(
 @inject
 async def stream(
     request: LlmRequest,
-    ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    haiqv_service: HaiqvService = Depends(Provide[Container.haiqv_service]),
     user: AuthUser = Depends(get_current_user),
 ):
     # 인증된 사용자 정보 사용 가능
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
-    result = ollama_service.chat_stream(prompt)
+    result = haiqv_service.chat_stream(prompt)
     return StreamingResponse(
         result,
         media_type="text/event-stream",
@@ -64,12 +64,12 @@ async def stream(
 @inject
 async def astream(
     request: LlmRequest,
-    ollama_service: OllamaService = Depends(Provide[Container.ollama_service]),
+    haiqv_service: HaiqvService = Depends(Provide[Container.haiqv_service]),
     user: AuthUser = Depends(get_current_user),
 ):
     print(f"[DEBUG] Authenticated user: {user.user_id}")
     prompt = PromptRequest(**request.model_dump())
-    result = await ollama_service.chat_stream_async(prompt)
+    result = await haiqv_service.chat_stream_async(prompt)
     return StreamingResponse(
         result,
         media_type="text/event-stream",

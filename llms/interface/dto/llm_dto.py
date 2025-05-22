@@ -1,9 +1,9 @@
 from pydantic import BaseModel
 
 
-class OllamaRequest(BaseModel):
+class LlmRequest(BaseModel):
     prompt: str
 
 
-class OllamaResponse(BaseModel):
+class LlmResponse(BaseModel):
     response: str

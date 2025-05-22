@@ -1,10 +1,10 @@
 from typing import Generator, AsyncGenerator
-from llms.infra.ollama_api import OllamaLLM
+from llms.infra.haiqv_api import HaiqvLLM
 from llms.domain.model.llm_schema import PromptRequest, PromptResponse
 
 
-class OllamaService:
-    def __init__(self, llm: OllamaLLM):
+class HaiqvService:
+    def __init__(self, llm: HaiqvLLM):
         self.llm = llm
 
     def chat(self, request: PromptRequest) -> PromptResponse:
