@@ -21,13 +21,13 @@ from log.log_config import get_logger
 
 logger = get_logger()
 
-prefix = "/chat-api"
+prefix = "/chat"
 
 
 def create_app():
     logger.info("[MAIN] Application setup")
     app = FastAPI(
-        title="Hello API",
+        title="Spider Chatbot API",
         openapi_url=f"{prefix}/openapi.json",
         docs_url=None,
         redoc_url=None,

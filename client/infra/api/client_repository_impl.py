@@ -2,8 +2,14 @@ from typing import Any, Dict, List
 from urllib.parse import urlparse
 from mcp import ClientSession
 from mcp.client.sse import sse_client
-
-from client.domain.model.tool import ToolDef, ToolParameter, ToolInvocationResult
+from mcp.types import (
+    Tool,
+    ListToolsResult,
+    CallToolRequestParams,
+    CallToolRequest,
+    CallToolResult,
+)
+from client.domain.model.tool import ToolInvocationResult
 from client.domain.repository.client_repository import IClientRepository
 
 
@@ -13,38 +19,19 @@ class ClientRepository(IClientRepository):
             raise ValueError(f"Endpoint {endpoint} is not a valid HTTP(S) URL")
         self.endpoint = endpoint
 
-    async def list_tools(self) -> List[ToolDef]:
-        tools = []
+    def _tools_json_parser(self, tools_result: ListToolsResult) -> List[Tool]:
+        return [tool.model_dump() for tool in tools_result.tools]
+
+    async def list_tools(self) -> List[Tool]:
         async with sse_client(self.endpoint) as streams:
             async with ClientSession(*streams) as session:
                 await session.initialize()
                 tools_result = await session.list_tools()
 
-                for tool in tools_result.tools:
-                    parameters = []
-                    required_params = tool.inputSchema.get("required", [])
-                    for param_name, param_schema in tool.inputSchema.get(
-                        "properties", {}
-                    ).items():
-                        parameters.append(
-                            ToolParameter(
-                                name=param_name,
-                                parameter_type=param_schema.get("type", "string"),
-                                description=param_schema.get("description", ""),
-                                required=param_name in required_params,
-                                default=param_schema.get("default"),
-                            )
-                        )
-                    tools.append(
-                        ToolDef(
-                            name=tool.name,
-                            description=tool.description,
-                            parameters=parameters,
-                            metadata={"endpoint": self.endpoint},
-                            identifier=tool.name,
-                        )
-                    )
-        return tools
+                # tools_result가 Pydantic 모델일 경우 JSON 변환 → 다시 파싱
+                parsed_tools = ListToolsResult(**tools_result.model_dump())
+
+        return self._tools_json_parser(parsed_tools)
 
     async def invoke_tool(
         self, tool_name: str, kwargs: Dict[str, Any], token: str
