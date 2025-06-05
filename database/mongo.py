@@ -1,4 +1,5 @@
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+
 from config import get_settings
 
 CHAT_DB_CONFIG = get_settings().mongo
@@ -22,3 +23,7 @@ def get_async_mongo_client() -> AsyncIOMotorClient:
         socketTimeoutMS=STS,
         serverSelectionTimeoutMS=SSTS,
     )
+
+
+def get_async_mongo_database(client: AsyncIOMotorClient) -> AsyncIOMotorDatabase:
+    return client[DB]

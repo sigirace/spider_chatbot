@@ -1,68 +1,70 @@
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.middleware.cors import CORSMiddleware
-from starlette_context.middleware import RawContextMiddleware
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
     get_swagger_ui_oauth2_redirect_html,
 )
-
-from users.interface.controller.user_controller import router as user_router
-from llms.interface.controller.ollama_controller import router as ollama_router
-from llms.interface.controller.haiqv_controller import router as haiqv_router
-from client.interface.controller.mcp_client_controller import (
-    router as mcp_client_router,
-)
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.cors import CORSMiddleware
+from starlette_context.middleware import RawContextMiddleware
 from containers import Container
-from log.log_config import get_logger
+from database.setup import set_all_indexes
+from middleware.request_context import RequestContextMiddleware
 
-logger = get_logger()
+from interface.controller.router.user_router import router as user_router
+from interface.controller.router.chat_router import router as chat_router
+from interface.controller.router.message_router import router as message_router
 
-prefix = "/chat-api"
+prefix = ""
 
 
-def create_app():
-    logger.info("[MAIN] Application setup")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    container = Container()
+    app.container = container
+    db = container.motor_db()
+    await set_all_indexes(db)
+
+    yield
+
+
+def create_app() -> FastAPI:
     app = FastAPI(
-        title="Hello API",
+        title="Spider Embedding API",
+        lifespan=lifespan,
         openapi_url=f"{prefix}/openapi.json",
         docs_url=None,
         redoc_url=None,
-        swagger_ui_parameters={"syntaxHighlight.theme": "obsidian"},
+        swagger_ui_parameters={
+            "syntaxHighlight.theme": "obsidian",
+        },
     )
 
     app.openapi_version = "3.0.3"
 
-    app.mount(f"{prefix}/static", StaticFiles(directory="static"), name="static")
+    app.mount(
+        f"{prefix}/static",
+        StaticFiles(directory="static"),
+        name="static",
+    )
 
-    # 공통 prefix 라우터
-    api_router = APIRouter(prefix=prefix)
-    api_router.include_router(user_router, tags=["Users"])
-    api_router.include_router(ollama_router, tags=["Ollama"])
-    api_router.include_router(haiqv_router, tags=["Haiqv"])
-    api_router.include_router(mcp_client_router, tags=["MCP"])
+    api_router = APIRouter(prefix=f"{prefix}")
     app.include_router(api_router)
-
+    app.include_router(user_router, tags=["User"])
+    app.include_router(chat_router, tags=["Chat"])
+    app.include_router(message_router, tags=["Message"])
     app.add_middleware(
-        CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.add_middleware(RawContextMiddleware)
-
-    container = Container()
-    container.wire(
-        modules=[
-            "utils.jwt",
-            "users.interface.controller.user_controller",
-            "users.interface.controller.user_depends",
-            "llms.interface.controller.ollama_controller",
-            "llms.interface.controller.haiqv_controller",
-            "client.interface.controller.mcp_client_controller",
-        ]
-    )
-    app.container = container
+    app.add_middleware(RequestContextMiddleware)
 
     return app
 
@@ -111,52 +113,7 @@ async def redoc_html():
     )
 
 
-# import json
-# from fastapi import Body, FastAPI
-
-# from fastapi.responses import JSONResponse
-# import uvicorn
-
-# from client.client import MCPClient
-# from client.dto import ToolResult
-
-# app = FastAPI()
-
-
-# mcp_client = MCPClient("http://localhost:8001/sse")
-
-
-# @app.get("/")
-# def read_root():
-#     return {"message": "Hello World"}
-
-
-# @app.get("/tools")
-# async def read_tools():
-#     return await mcp_client.list_tools()
-
-
-# @app.post("/tool/{tool_id}", response_model=ToolResult)
-# async def invoke_tool(tool_id: str, params: dict = Body(...)):
-#     result = await mcp_client.invoke_tool(tool_id, params, "user_token")
-
-#     try:
-#         level1 = json.loads(result.content)
-#         level2 = json.loads(level1["text"])
-#         parsed_result = ToolResult(**level2)
-#     except Exception as e:
-#         return JSONResponse(
-#             status_code=500,
-#             content={
-#                 "error": "Failed to parse tool result",
-#                 "details": str(e),
-#             },
-#         )
-
-#     return parsed_result
-
-
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8005)
