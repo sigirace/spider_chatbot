@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BaseUserDTO(BaseModel):
@@ -11,8 +11,8 @@ class UserCreateRequest(BaseUserDTO):
 
 
 class UserLoginRequest(BaseModel):
-    user_id: str
-    password: str
+    user_id: str = Field(..., alias="userId")
+    password: str = Field(..., alias="password")
 
 
 class UserResponse(BaseUserDTO):
@@ -22,3 +22,16 @@ class UserResponse(BaseUserDTO):
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
+
+
+class LoginResponseData(BaseModel):
+    clientIp: str
+    empNo: str | None
+    exp: str
+    iat: str
+    token: str
+    userId: str
+
+
+class LoginResponse(BaseModel):
+    data: LoginResponseData

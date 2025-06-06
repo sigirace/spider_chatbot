@@ -7,10 +7,15 @@ from dependency_injector.wiring import Provide, inject
 from containers import Container
 from domain.users.models import BaseUser
 from interface.controller.dependency.auth import get_current_user
-from interface.dto.user_dto import UserCreateRequest, UserLoginRequest
+from interface.dto.user_dto import (
+    LoginResponse,
+    LoginResponseData,
+    UserCreateRequest,
+    UserLoginRequest,
+)
 from interface.mapper.user_mapper import UserMapper
 
-router = APIRouter(prefix="/user")
+router = APIRouter(prefix="/users")
 
 
 @router.post("/signup")
@@ -34,7 +39,16 @@ async def login(
 ):
     login_request = UserMapper.to_login_request(request)
     auth_token = await log_in(login_request)
-    return UserMapper.to_token_response(auth_token)
+    return LoginResponse(
+        data=LoginResponseData(
+            clientIp="127.0.0.1",
+            empNo="admin",
+            exp="1717641600",
+            iat="1717641600",
+            token=auth_token.access_token,
+            userId=request.user_id,
+        )
+    )
 
 
 @router.get("/me")

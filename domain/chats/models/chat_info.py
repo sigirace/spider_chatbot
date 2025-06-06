@@ -2,8 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from datetime import datetime
-from utils.date_utils import get_utc_now
+from datetime import UTC, datetime
 from domain.chats.models.identifiers import ChatId
 
 
@@ -23,7 +22,7 @@ class ChatInfo(BaseModel):
         default=None, description="채팅의 타이틀"
     )
     created_at: Annotated[datetime, Field(description="채팅 생성시간")] = Field(
-        default_factory=get_utc_now
+        default_factory=lambda: datetime.now(UTC)
     )
     is_hidden: Annotated[bool, ...] = Field(
         default=False, description="유저에게 이 채팅이 감춰질 것인지의 여부"

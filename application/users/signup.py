@@ -4,7 +4,6 @@ from common import handle_exceptions
 from domain.users.models import BaseUser, UserCreate, User
 from domain.users.repository import IUserRepository
 from infra.service.crypto_service import CryptoService
-from utils.object_utils import get_str_id
 
 
 class SignUp:

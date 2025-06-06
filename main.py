@@ -18,8 +18,9 @@ from middleware.request_context import RequestContextMiddleware
 from interface.controller.router.user_router import router as user_router
 from interface.controller.router.chat_router import router as chat_router
 from interface.controller.router.message_router import router as message_router
+from interface.controller.router.prompt_router import router as prompt_router
 
-prefix = ""
+prefix = "/api"
 
 
 @asynccontextmanager
@@ -34,7 +35,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Spider Embedding API",
+        title="Spider Chatbot API",
         lifespan=lifespan,
         openapi_url=f"{prefix}/openapi.json",
         docs_url=None,
@@ -52,11 +53,14 @@ def create_app() -> FastAPI:
         name="static",
     )
 
-    api_router = APIRouter(prefix=f"{prefix}")
+    api_router = APIRouter(prefix=prefix)
+
+    api_router.include_router(user_router, tags=["User"])
+    api_router.include_router(chat_router, tags=["Chat"])
+    api_router.include_router(message_router, tags=["Message"])
+    api_router.include_router(prompt_router, tags=["Prompt"])
+
     app.include_router(api_router)
-    app.include_router(user_router, tags=["User"])
-    app.include_router(chat_router, tags=["Chat"])
-    app.include_router(message_router, tags=["Message"])
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -116,4 +120,4 @@ async def redoc_html():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8005)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

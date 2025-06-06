@@ -1,11 +1,11 @@
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-COLLECTION_NAME = "app"
+COLLECTION_NAME = "prompt"
 
 
 async def indexes(db: AsyncIOMotorDatabase):
     await db[COLLECTION_NAME].create_index(
-        [("creator", 1), ("app_name", 1)],
+        [("name", 1)],
         unique=True,
-        name="creator_app_unique",
+        name="name_unique",
     )

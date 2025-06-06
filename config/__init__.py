@@ -3,7 +3,8 @@ from functools import lru_cache
 from config.haiqv_setting import HaiqvSetting
 from config.jwt_setting import JWTSetting
 from config.mongo_setting import MongoSetting
-from config.milvus_setting import MilvusSetting
+from config.rerank_setting import RerankSetting
+from config.studio_setting import StudioSetting
 
 
 class Settings:
@@ -11,7 +12,8 @@ class Settings:
         self.mongo = MongoSetting()
         self.jwt = JWTSetting()
         self.haiqv = HaiqvSetting()
-        self.milvus = MilvusSetting()
+        self.studio = StudioSetting()
+        self.rerank = RerankSetting()
 
 
 @lru_cache()

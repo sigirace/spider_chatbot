@@ -1,6 +1,7 @@
 from typing import Any, List, Tuple
 
 from application.service.validator import Validator
+from common import handle_exceptions
 from domain.chats.models.identifiers import ChatId
 from domain.messages.models.message import BaseMessage
 from domain.messages.repository.repository import IMessageRepository
@@ -17,6 +18,7 @@ class MessageList:
         self.message_repository = message_repository
         self.validator = validator
 
+    @handle_exceptions
     async def __call__(
         self,
         chat_id: ChatId,

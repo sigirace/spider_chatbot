@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from domain.chats.models.identifiers import ChatId
 from domain.chats.repository.repository import IChatInfoRepository
+from domain.prompts.repository import IPromptRepository
 from domain.users.models import User
 from domain.users.repository import IUserRepository
-from utils.object_utils import get_object_id
 
 
 class Validator:
@@ -15,9 +15,11 @@ class Validator:
         self,
         user_repository: IUserRepository,
         chat_info_repository: IChatInfoRepository,
+        prompt_repository: IPromptRepository,
     ):
         self.user_repository = user_repository
         self.chat_info_repository = chat_info_repository
+        self.prompt_repository = prompt_repository
 
     async def user_validator(
         self,
@@ -55,3 +57,17 @@ class Validator:
             )
 
         return chat_info
+
+    async def prompt_validator(
+        self,
+        prompt_name: str,
+    ):
+        prompt = await self.prompt_repository.get_by_name(prompt_name)
+
+        if prompt is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="프롬프트를 찾지 못했습니다.",
+            )
+
+        return prompt

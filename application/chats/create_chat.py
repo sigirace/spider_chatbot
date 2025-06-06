@@ -1,4 +1,5 @@
 from application.service.chat_service import ChatService
+from common import handle_exceptions
 from domain.chats.models.chat_info import ChatInfo
 from domain.chats.repository.repository import IChatInfoRepository
 
@@ -12,6 +13,7 @@ class CreateChat:
         self.chat_info_repository = chat_info_repository
         self.chat_service = chat_service
 
+    @handle_exceptions
     async def __call__(self, user_id: str) -> ChatInfo:
         last_chat_info = await self.chat_info_repository.find_last_by_owner_id(
             owner_id=user_id,

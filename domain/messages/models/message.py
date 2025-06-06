@@ -1,5 +1,5 @@
 from typing import Annotated, Literal, Union
-from datetime import datetime
+from datetime import UTC, datetime
 
 import langchain_core.messages
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -9,7 +9,6 @@ from domain.chats.models.identifiers import ChatId
 
 from domain.messages.models.identifiers import MessageId
 from domain.plans.plan import PlanInfo
-from utils.date_utils import get_utc_now
 
 
 class BaseMessage(BaseModel):
@@ -31,7 +30,7 @@ class BaseMessage(BaseModel):
     def default_empty_metadata(cls, v):
         return v or {}
 
-    created_at: datetime | None = Field(default_factory=get_utc_now)
+    created_at: datetime | None = Field(default_factory=lambda: datetime.now(UTC))
 
     def to_langchain_message(self):
         """

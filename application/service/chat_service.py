@@ -28,7 +28,18 @@ class ChatService:
 
         return message_count == 0
 
-    async def _get_message_history(
+    async def need_title_generation(self, chat_id: ChatId) -> bool:
+        """
+        제목 생성이 필요한지 확인
+        """
+        chat_info = await self.chat_info_repository.find_by_id(chat_id=chat_id)
+
+        if chat_info.id is None:
+            return False
+
+        return chat_info.title is None
+
+    async def get_message_history(
         self,
         chat_id: ChatId,
         max_count: int = 6,

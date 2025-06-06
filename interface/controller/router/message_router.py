@@ -1,20 +1,28 @@
+from typing import Optional
 from fastapi import APIRouter, Depends
 from dependency_injector.wiring import Provide, inject
+from fastapi.responses import StreamingResponse
+from application.messages.message_generator import MessageGenerator
 from application.messages.message_list import MessageList
 from common.log_wrapper import log_request
 from containers import Container
+from domain.chats.models.control import ControlSignal
 from domain.chats.models.identifiers import ChatId
 from domain.users.models import BaseUser
 from interface.controller.dependency.auth import get_current_user
-from interface.dto.message_dto import MessageListResponse, SlicedMessageListResponse
+from interface.dto.message_dto import (
+    MessageListResponse,
+    MessagesRequestBody,
+    SlicedMessageListResponse,
+)
 from interface.dto.pagenation_dto import PagenationRequestParams
 from interface.mapper.message_mapper import MessageMapper
 
 
-router = APIRouter(prefix="/message")
+router = APIRouter(prefix="/v2")
 
 
-@router.get("/{chat_id}")
+@router.get("/chats/{chat_id}/messages")
 @log_request()
 @inject
 async def get_message_list(
@@ -54,14 +62,33 @@ async def get_message_list(
     return response
 
 
-@router.post("/{chat_id}")
+@router.post("/chats/{chat_id}/messages")
 @log_request()
 @inject
 async def handle_message_request(
     chat_id: ChatId,
+    request: MessagesRequestBody,
     user: BaseUser = Depends(get_current_user),
+    message_generator: MessageGenerator = Depends(Provide[Container.message_generator]),
+    app_id: Optional[str] = "mydt",
 ):
     """
     유저 메시지를 채팅 세션의 마지막에 추가하고, 챗봇 동작을 시도
     """
-    pass
+
+    async def sse():
+        try:
+            async for chunk in message_generator(
+                chat_id=chat_id,
+                user_id=user.user_id,
+                user_query=request.user_query,
+                app_id=app_id,
+            ):
+                yield chunk
+        except Exception as e:
+            yield f"data: {ControlSignal(control_signal='error_occurred').model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        sse(),
+        media_type="text/event-stream",
+    )

@@ -15,10 +15,10 @@ from interface.dto.common_dto import DeletedResponse
 from interface.dto.pagenation_dto import PagenationRequestParams
 from interface.mapper.chat_mapper import ChatInfoMapper
 
-router = APIRouter(prefix="/chat")
+router = APIRouter(prefix="/v2")
 
 
-@router.get("")
+@router.get("/chats")
 @log_request()
 @inject
 async def get_chat_list(
@@ -36,7 +36,7 @@ async def get_chat_list(
 
     _dto_mapped_list = [
         ChatInfoMapper.to_dto(chat_info) for chat_info in chat_info_list
-    ]
+    ][::-1]
 
     if next_start_offset is None:
         response = ChatInfoListResponse(chat_info_list=_dto_mapped_list)
@@ -48,7 +48,7 @@ async def get_chat_list(
     return response
 
 
-@router.post("")
+@router.post("/chats")
 @log_request()
 @inject
 async def new_chat(
@@ -62,7 +62,7 @@ async def new_chat(
     )
 
 
-@router.delete("/{chat_id}")
+@router.delete("/chats/{chat_id}")
 @log_request()
 @inject
 async def delete(
