@@ -1,7 +1,6 @@
 import logging
 from typing import List
-from openai import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.messages import HumanMessage, SystemMessage
 from domain.api.models import RerankSchema, SearchResponse

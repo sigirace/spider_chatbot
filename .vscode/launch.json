@@ -2,6 +2,25 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Docker: Python - Fastapi",
+      "type": "docker",
+      "request": "launch",
+      "preLaunchTask": "docker-run: debug",
+      "python": {
+        "pathMappings": [
+          {
+            "localRoot": "${workspaceFolder}",
+            "remoteRoot": "/app"
+          }
+        ],
+        "projectType": "fastapi"
+      },
+      "dockerServerReadyAction": {
+        "pattern": "http://0.0.0.0:8000",
+        "uriFormat": "http://localhost:8000/api/docs"
+      }
+    },
+    {
       "name": "Debug Chat API Server",
       "type": "debugpy",
       "request": "launch",

@@ -1,6 +1,5 @@
 from typing import Annotated
-from openai import BaseModel
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 
 class TitleGenerateResult(BaseModel):

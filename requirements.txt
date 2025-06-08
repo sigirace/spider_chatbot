@@ -45,4 +45,4 @@ pymupdf4llm==0.0.24
 langchain_ollama==0.3.3
 python-multipart==0.0.20
 passlib==1.7.4
-bcrypt==4.3.0
+bcrypt==4.0.1

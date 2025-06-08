@@ -2,6 +2,37 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "type": "docker-build",
+      "label": "docker-build",
+      "platform": "python",
+      "dockerBuild": {
+        "tag": "chat-backend:v1",
+        "dockerfile": "${workspaceFolder}/Dockerfile",
+        "context": "${workspaceFolder}",
+        "pull": true,
+        "platform": "linux/amd64"
+      }
+    },
+    {
+      "type": "docker-run",
+      "label": "docker-run: debug",
+      "dependsOn": ["docker-build"],
+      "dockerRun": {
+        "containerName": "chat-backend",
+        "ports": [
+          {
+            "hostPort": 8000,
+            "containerPort": 8000
+          }
+        ],
+        "network": "network"
+      },
+      "python": {
+        "args": ["main:app", "--host", "0.0.0.0", "--port", "8000"],
+        "module": "uvicorn"
+      }
+    },
+    {
       "label": "Run Chat API Server",
       "type": "shell",
       "command": "python",

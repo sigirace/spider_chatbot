@@ -35,7 +35,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Spider Chatbot API",
+        title="Spider Chat API",
         lifespan=lifespan,
         openapi_url=f"{prefix}/openapi.json",
         docs_url=None,
