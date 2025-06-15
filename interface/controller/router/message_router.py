@@ -4,6 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from fastapi.responses import StreamingResponse
 from application.messages.message_generator import MessageGenerator
 from application.messages.message_list import MessageList
+from application.service.stt_service import STTService
 from common.log_wrapper import log_request
 from containers import Container
 from domain.chats.models.control import ControlSignal
@@ -11,6 +12,7 @@ from domain.chats.models.identifiers import ChatId
 from domain.users.models import BaseUser
 from interface.controller.dependency.auth import get_current_user
 from interface.dto.message_dto import (
+    AudioRequestBody,
     MessageListResponse,
     MessagesRequestBody,
     SlicedMessageListResponse,
@@ -83,6 +85,46 @@ async def handle_message_request(
                 user_id=user.user_id,
                 user_query=request.user_query,
                 app_id=app_id,
+                tts_required=request.tts_required,
+            ):
+                yield chunk
+        except Exception as e:
+            yield f"data: {ControlSignal(control_signal='error_occurred').model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        sse(),
+        media_type="text/event-stream",
+    )
+
+
+@router.post("/chats/{chat_id}/audio")
+@log_request()
+@inject
+async def handle_audio_request(
+    chat_id: ChatId,
+    request: AudioRequestBody,
+    user: BaseUser = Depends(get_current_user),
+    message_generator: MessageGenerator = Depends(Provide[Container.message_generator]),
+    stt_service: STTService = Depends(Provide[Container.stt_service]),
+    app_id: Optional[str] = "mydt",
+):
+    """
+    유저 메시지를 채팅 세션의 마지막에 추가하고, 챗봇 동작을 시도
+    STT 및 TTS 요청을 처리
+    """
+
+    ## 1. 음성 파일을 STT 서버로 전송
+
+    ## 2. 전달받은 텍스트를 user_query로 사용
+
+    async def sse():
+        try:
+            async for chunk in message_generator(
+                chat_id=chat_id,
+                user_id=user.user_id,
+                user_query="test",
+                app_id=app_id,
+                tts_required=True,
             ):
                 yield chunk
         except Exception as e:

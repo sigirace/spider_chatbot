@@ -11,6 +11,11 @@ from domain.plans.plan import PlanInfo
 
 class MessagesRequestBody(BaseModel):
     user_query: Annotated[str, Query(max_length=10240)]
+    tts_required: Annotated[bool, Query(default=False)]
+
+
+class AudioRequestBody(BaseModel):
+    audio_data: Annotated[str, ...] = Field(description="음성 데이터 경로")
 
 
 class BaseMessageResponse(BaseModel):

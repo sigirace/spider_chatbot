@@ -6,7 +6,9 @@ from application.service.executor import ExecutorService
 from application.service.generator import GeneratorService
 from application.service.handler import HandlerService
 from application.service.planner import PlannerService
+from application.service.stt_service import STTService
 from application.service.title_service import TitleService
+from application.service.tts_service import TTSService
 from application.service.validator import Validator
 from common import handle_exceptions
 from domain.chats.models.identifiers import ChatId
@@ -29,6 +31,7 @@ class MessageGenerator:
         handler: HandlerService,
         executor: ExecutorService,
         generator: GeneratorService,
+        tts_service: TTSService,
     ):
         self.validator = validator
         self.chat_service = chat_service
@@ -37,6 +40,7 @@ class MessageGenerator:
         self.handler = handler
         self.executor = executor
         self.generator = generator
+        self.tts_service = tts_service
 
     @handle_exceptions
     async def __call__(
@@ -46,6 +50,7 @@ class MessageGenerator:
         user_id: str,
         user_query: str,
         app_id: str,
+        tts_required: bool = False,
         flush_every: int = 20,
         verbose: bool = True,
     ) -> AsyncGenerator[str, None]:
@@ -63,7 +68,7 @@ class MessageGenerator:
         #  3. 히스토리 조회
         chat_history, _ = await self.chat_service.get_message_history(chat_id)
 
-        #  4. 제목 생성 서브-태스크
+        #  4. 제목 생성 서브 태스크
         sub_queue: asyncio.Queue[str] = asyncio.Queue()
         title_task = None
 
@@ -115,7 +120,16 @@ class MessageGenerator:
             while not sub_queue.empty():  # 제목 신호 즉시 전달
                 yield f"data:{await sub_queue.get()}\n\n"
 
-        #  8. Generator (최종 답변 토큰 스트림)
+        #  8. 음성 생성 서브 태스크
+        tts_queue: asyncio.Queue[str] = asyncio.Queue()
+        tts_task = None
+
+        if tts_required:
+            # 8.1 요약문 생성 - Invoke
+            # 8.2 TTS 요청 - async
+            pass
+
+        #  9. Generator (최종 답변 토큰 스트림)
         async for token_json in self.generator.stream_answer(
             app_id=app_id,
             user_id=user_id,
@@ -126,13 +140,23 @@ class MessageGenerator:
             flush_every=flush_every,
         ):
             yield f"data:{token_json}\n\n"
+
+            while not tts_queue.empty():  # 토큰 중에도 전달
+                yield f"audio:{await tts_queue.get()}\n\n"
+
             while not sub_queue.empty():  # 토큰 중에도 전달
                 yield f"data:{await sub_queue.get()}\n\n"
 
         assistant_msg.status = "complete"
         await self.handler.message_repository.update(assistant_msg)
 
-        #  9. 제목 태스크 마무리
+        #  10. 음성 생성 서브 태스크 마무리
+        if tts_task:
+            await tts_task
+            while not tts_queue.empty():
+                yield f"audio:{await tts_queue.get()}\n\n"
+
+        #  11. 제목 태스크 마무리
         if title_task:
             await title_task
             while not sub_queue.empty():

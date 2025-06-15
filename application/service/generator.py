@@ -30,6 +30,7 @@ class GeneratorService:
         chat_history: List[BaseMessage],
         user_msg: HumanMessage,
         plan: PlanInfo,
+        tts_summary: str | None = None,
     ):
         system_prompt = await self._prompt_service.get_prompt("final_answer_system")
         persona_prompt = await self._prompt_service.get_prompt("final_answer_persona")
@@ -67,8 +68,9 @@ class GeneratorService:
         user_msg: HumanMessage,
         assistant_msg: AIMessage,
         plan: PlanInfo,
+        tts_summary: str | None = None,
         flush_every: int = 20,
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncGenerator[TokenChunk, None]:
         buffer = ""
         async for idx, token in aenumerate(
             self._token_stream(
@@ -77,6 +79,7 @@ class GeneratorService:
                 chat_history=chat_history,
                 user_msg=user_msg,
                 plan=plan,
+                tts_summary=tts_summary,
             ),
             1,
         ):

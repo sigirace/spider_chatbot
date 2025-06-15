@@ -17,7 +17,9 @@ from application.service.generator import GeneratorService
 from application.service.handler import HandlerService
 from application.service.planner import PlannerService
 from application.service.prompt_service import PromptService
+from application.service.stt_service import STTService
 from application.service.title_service import TitleService
+from application.service.tts_service import TTSService
 from application.service.validator import Validator
 from application.users.login import Login
 from application.users.signup import SignUp
@@ -141,6 +143,8 @@ class Container(containers.DeclarativeContainer):
         chat_info_repository=chat_info_repository,
         llm=haiqv_ollama_llm,
     )
+    stt_service = providers.Factory(STTService)
+    tts_service = providers.Factory(TTSService)
 
     # users
     signup = providers.Factory(
@@ -187,6 +191,7 @@ class Container(containers.DeclarativeContainer):
         handler=handler,
         executor=executor,
         generator=generator,
+        tts_service=tts_service,
     )
 
     # prompt
