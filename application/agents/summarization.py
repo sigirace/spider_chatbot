@@ -21,19 +21,19 @@ from utils.prompt_utils import step_info_to_str, step_list_to_str
 
 
 _SYSTAM_TEMPLATE = """
-당신은 요약을 수행하는 에이전트입니다.
-다음 대화 내용, 사용자 질의 및 질의 처리 과정을 확인하고 현재 단계의 의도에 맞게 요약을 수행하세요.
+You are an agent responsible for performing summarization.  
+Review the following conversation context, user query, and the overall processing plan, then generate a summary aligned with the intent of the current step.
 
-사용자 질의에 대한 전체 수행 계획:
+Full execution plan for the user's query:  
 {full_plan_string_for_query}
 
-당신이 요약을 수행해야 하는 현재 단계의 의도:
+Intent of the current step that requires summarization:  
 {current_step_string}
 
-주의 사항:
-- 요약이 필요한 부분만 정확하게 요약합니다. 불필요한 내용을 포함하지 않습니다.
-- 요약 결과의 언어는 요약 대상 문자열의 언어와 동일한 언어로 작성해주세요.
-- 요약 결과를 작성한 뒤에는 응답을 종료합니다.
+Guidelines:  
+- Summarize only the parts that require summarization. Do not include unnecessary information.  
+- The summary should be written in the **same language** as the original content being summarized.  
+- After writing the summary result, end the response immediately.
 """
 
 
@@ -88,7 +88,9 @@ class SummarizationAgent:
         1. 메인 질의, 지난 채팅 히스토리, 현재의 스텝 리스트를 참조해서
         요약을 수행해야하며 이를 위한 프롬프트를 구성
         """
-        sub_status = SubStepInfo(title="현재 문맥에서의 요약문을 생성합니다.")
+        sub_status = SubStepInfo(
+            title="Generate a summary based on the current context."
+        )
         if verbose:
             logging.info(f"{sub_status.title}")
         yield sub_status

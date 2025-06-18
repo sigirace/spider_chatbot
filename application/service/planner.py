@@ -57,7 +57,7 @@ class PlannerService:
         prompt = tmpl.format(
             user_msg=user_msg.content,
             chat_history=(
-                "전체 대화 흐름의 첫 질의 입니다."
+                "This is the first query of the entire conversation flow."
                 if len(chat_history) < 1
                 else [m.to_langchain_message() for m in chat_history]
             ),

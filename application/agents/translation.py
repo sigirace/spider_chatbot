@@ -23,29 +23,31 @@ from domain.plans.step import StepList
 from domain.plans.sub_step import SubStepInfo
 
 _PROMPT_TEMPLATE_FOR_PARAMETERS_EXTRACTION = """\
-당신은 "번역 작업의 명세서" 를 작성하는 매니저입니다.
-지난 대화 내용 및 현재의 질의 처리 과정을 확인하고 번역 에이전트가 번역해야하는 대상 문장 및 번역 결과 언어를 작업 명세서로써 작성하세요.
+You are a manager responsible for creating a "Translation Task Specification."  
+Review the previous conversation and the current execution plan, and generate a task specification that includes the sentence to be translated and the target language.
 
-작성 요령:
-- 작업 명세서는 JSON 형식으로 작성하며, 형식은 다음과 같습니다.
-{{"string_to_translate": <<언어 변환 에이전트가 번역할 전체 문자열 1개>>, "target_language": <<string_to_translate 가 번역될 타겟 언어>>}}
-- target_language 의 값은 한국어로 작성해주세요.
-- 작업 명세서를 작성한 뒤에는 응답을 종료합니다.
+Instructions:
+- The task specification must be written in **JSON format** as follows:  
+  {{ "string_to_translate": <<the full string that the translation agent should translate>>, "target_language": <<the target language for the translation>> }}
+- The value of "target_language" must be written in **Korean**.
+- After writing the task specification, end your response immediately.
 
-마지막 사용자 질의에 대한 수행 계획:
+Full execution plan for the most recent user query:  
 {full_plan_string_for_query}
 
-당신이 작업 명세서를 작성해야 하는 전체 수행 계획 내 현재 단계:
+Current step within the execution plan for which you must write the task specification:  
 {current_step_string}
 
-주의 사항:
-- 전체 수행 계획을 참고하여 현재의 단계에 대해서만 작성합니다.
-- string_to_translate 의 값으로 번역이 필요한 문장을 "그대로" 작성 하세요. 당신은 번역 에이전트가 아닙니다. 번역 결과는 당신이 작성한 작업 명세서를 바탕으로 다른 에이전트가 수행할 예정입니다."""
+Cautions:
+- Refer to the full plan, but only write the specification for the **current step**.
+- For the value of "string_to_translate", use the **exact sentence** that needs to be translated. You are **not** the translation agent. The actual translation will be performed by another agent based on this task specification.
+"""
 
 
 _SYSTEM_PROMPT_TEMPLATE_FOR_TRANSLATION = """\
-당신은 사용자가 말하는 문장을 {target_language}로 번역하는 번역 전문 에이전트입니다.
-사용자가 제공하는 문장의 번역 결과만을 1회 작성하세요."""
+You are a translation specialist agent responsible for translating user-provided sentences into {target_language}.  
+Provide the translation result **only once**, based solely on the sentence given by the user.
+"""
 
 
 class TranslationAgent:
@@ -68,7 +70,7 @@ class TranslationAgent:
         2)번역 대상 언어(패러미터가 될 것)를 지정하기 위한 프롬프트를 구성
         """
         sub_status = SubStepInfo(
-            title="현재 문맥에서 번역 수행 대상과, 번역 대상 언어를 추출합니다."
+            title="Extract the sentence to be translated and the target language based on the current context."
         )
 
         if verbose:
@@ -119,7 +121,7 @@ class TranslationAgent:
 
         # 새 SubStep 상태 생성
         sub_status = SubStepInfo(
-            title="추출한 번역 수행 대상을 번역 대상 언어로 번역합니다"
+            title="Translate the extracted source sentence into the target language."
         )
         if verbose:
             logging.info(sub_status.title)

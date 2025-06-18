@@ -72,7 +72,7 @@ async def handle_message_request(
     request: MessagesRequestBody,
     user: BaseUser = Depends(get_current_user),
     message_generator: MessageGenerator = Depends(Provide[Container.message_generator]),
-    app_id: Optional[str] = "mydt",
+    app_id: Optional[str] = "ford",
 ):
     """
     유저 메시지를 채팅 세션의 마지막에 추가하고, 챗봇 동작을 시도
@@ -106,7 +106,7 @@ async def handle_audio_request(
     user: BaseUser = Depends(get_current_user),
     message_generator: MessageGenerator = Depends(Provide[Container.message_generator]),
     stt_service: STTService = Depends(Provide[Container.stt_service]),
-    app_id: Optional[str] = "mydt",
+    app_id: Optional[str] = "ford",
 ):
     """
     유저 메시지를 채팅 세션의 마지막에 추가하고, 챗봇 동작을 시도

@@ -11,12 +11,9 @@ from domain.plans.sub_step import SubStepInfo
 from infra.wrapper.haiqv_chat_ollama import HaiqvChatOllama
 
 _KEYWORD_EXTRACTION_SYSTEM_PROMPT = """
-사용자는 Query에 대해 문서 질의가 필요합니다.
-Query와 가장 연관있는 문서를 찾기 위한 검색 문장을 출력 형식에 맞추어 정확히 {keyword_num_to_extract} 개만 작성하세요.
-
-
-출력 형식:
-{parser_instruction}
+The user needs to query the documents based on a given question.
+Generate exactly {keyword_num_to_extract} search phrases that are most relevant to the query.
+Follow the output format specified in {parser_instruction}.
 
 Query:
 """
@@ -41,8 +38,7 @@ class RetrievalAgent:
 
         class KeywordsOfQuery(BaseModel):
             keyword_string_list: List[str] = Field(
-                description="문서 질의에 사용할 키워드 문자열 리스트. 리스트 안에는 문자열만 포함되어야 하며, 정확히 "
-                f"{keyword_num_to_extract}개 존재해야 합니다."
+                description=f"A list of keyword strings to be used for document retrieval. The list must contain only strings and must include exactly {keyword_num_to_extract} items."
             )
 
         parser = PydanticOutputParser(pydantic_object=KeywordsOfQuery)
@@ -87,9 +83,9 @@ class RetrievalAgent:
 
             if doc.tags:
                 tags_str = ", ".join(doc.tags)
-                parts.append(f"주요태그: {tags_str}")
+                parts.append(f"primary tag: {tags_str}")
 
-            parts.append(f"출처: {doc.document_name} - {doc.page} page")
+            parts.append(f"from: {doc.document_name} - {doc.page} page")
             result.append("\n".join(parts))
         return result
 
@@ -104,7 +100,7 @@ class RetrievalAgent:
         verbose: bool = False,
     ):
 
-        sub_status = SubStepInfo(title="메인 질의문으로부터 키워드를 추출합니다")
+        sub_status = SubStepInfo(title="Extract keywords from the main query.")
         if verbose:
             logging.info(sub_status.title)
         yield sub_status
@@ -118,7 +114,7 @@ class RetrievalAgent:
         )
 
         if verbose:
-            logging.info(f"키워드 생성결과: {keyword_list}")
+            logging.info(f"keywords: {keyword_list}")
 
         # 키워드 생성 종료 출력
         sub_status.status = "complete"
@@ -127,7 +123,7 @@ class RetrievalAgent:
 
         # 여기서 유사도 검색 api 사용
 
-        sub_status = SubStepInfo(title="추출한 키워드를 이용하여 문서를 검색합니다")
+        sub_status = SubStepInfo(title="Search documents using the extracted keywords.")
         yield sub_status
 
         sub_status.status = "processing"
@@ -150,7 +146,7 @@ class RetrievalAgent:
         sub_status.status = "complete"
         yield sub_status
 
-        sub_status = SubStepInfo(title="문서를 관련도 순으로 재정렬합니다")
+        sub_status = SubStepInfo(title="Re-rank the documents based on relevance.")
         yield sub_status
 
         sub_status.status = "processing"
@@ -170,3 +166,7 @@ class RetrievalAgent:
             value=string_documents,
         )
         yield sub_status
+
+        # 이후 주요 페이지 전달
+        if len(rerank_documents) > 0:
+            yield rerank_documents[0].model_dump_json()
