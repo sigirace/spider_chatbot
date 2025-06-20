@@ -41,7 +41,7 @@ class RerankRepositoryImpl(IRerankRepository, BaseDocumentCompressor):
 
         # 2) HTTP 요청 (httpx 비동기 사용)
         try:
-            async with httpx.AsyncClient(timeout=15, verify=False) as client:
+            async with httpx.AsyncClient(timeout=600, verify=False) as client:
                 resp = await client.post(
                     self.endpoint_url,
                     json=payload,

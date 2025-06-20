@@ -23,23 +23,23 @@ from domain.chats.repository.repository import IChatInfoRepository
 from domain.messages.models.message import HumanMessage
 
 
-_CHAT_TITLE_SYSTEM_PROMPT = "당신은 대화 내용을 보고, 전체적인 주제를 잘 요약한 짧고 자연스러운 제목을 지어주는 도우미입니다. 간결하고 명확한 제목을 만들어주세요."
+_CHAT_TITLE_SYSTEM_PROMPT = "You are an assistant that creates short and natural-sounding titles summarizing the overall topic of a conversation. Please generate concise and clear titles."
 _USER_PROMPT_TEMPLATE_STR = """\
-다음 글을 읽고, 글의 전체적인 주제를 잘 나타내는 간결한 제목을 한 문장으로 작성하시오. 너무 길거나 모호하지 않게 작성합니다.
-글의 내용은 한화시스템ICT 임직원이 챗봇에게 질의한 질의문입니다.
+Read the following message and generate a concise title that best represents the overall topic. The title should not be too long or vague.
+The message is a question submitted by an employee of Hanwha Systems ICT to a chatbot.
 
-1. 작성 요령
-    - 응답은 반드시 json 모듈에 의해 즉시 parsing 가능한 json 형식으로 작성
-        - 응답 json 은 title 이라는 단 하나의 key 만을 갖습니다
-        - title 의 value 는 string 형식이며 질의문에 대한 제목을 의미합니다
-    - 응답 예시: {{"title": "사무용 PC 교체 주기 문의"}}
-    - 대화에 주제가 없는 경우 빈 json({{}}) 을 작성합니다.
+1. Guidelines
+    - The response must be in JSON format that can be immediately parsed by the json module
+        - The JSON must contain only one key: "title"
+        - The value of "title" must be a string representing the title of the question
+    - Example: {{"title": "Inquiry about office PC replacement cycle"}}
+    - If the message has no clear topic, return an empty JSON object: {{}}
 
-2. 주의 사항
-    - 불필요한 문자가 포함되지 않도록 주의합니다. 응답은 있는 그대로 json 해석기에 의해 해석될 예정입니다.
-    - 질의문에 대해 응답을 작성하지 않도록 주의합니다.
+2. Cautions
+    - Ensure no unnecessary characters are included. The response will be parsed directly by a JSON parser.
+    - Do not attempt to answer the question.
 
-질의문: {user_query}
+User message: {user_query}
 """
 
 

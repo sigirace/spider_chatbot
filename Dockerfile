@@ -1,9 +1,5 @@
 ### 1단계: 빌드 스테이지 ###
-FROM python:3.11-slim AS builder
-
-# 필수 환경 변수
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+FROM sigirace/spider-base AS builder
 
 # requirements 설치
 COPY requirements.txt .

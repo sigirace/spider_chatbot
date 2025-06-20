@@ -1,3 +1,5 @@
+from asyncio import Queue
+import json
 import logging
 from typing import List
 from pydantic import BaseModel, Field
@@ -94,6 +96,7 @@ class RetrievalAgent:
         user_id: str,
         app_id: str,
         user_query: str,
+        queue: Queue[str],
         keyword_num_to_extract: int = 3,
         top_k: int = 3,
         top_n: int = 3,
@@ -144,6 +147,15 @@ class RetrievalAgent:
         unique_documents = list(unique_documents_dict.values())
 
         sub_status.status = "complete"
+        if not unique_documents:
+            sub_status.observation = ObservationItem(
+                type="string",
+                value="No relevant document in app.",
+            )
+            yield sub_status
+
+            return
+
         yield sub_status
 
         sub_status = SubStepInfo(title="Re-rank the documents based on relevance.")
@@ -157,6 +169,13 @@ class RetrievalAgent:
             query=user_query,
             top_n=top_n,
         )
+        await queue.put(
+            json.dumps(
+                {
+                    "primary_page": rerank_documents[0].page,
+                }
+            )
+        )
 
         string_documents = self.format_documents_to_strings(rerank_documents)
 
@@ -166,7 +185,3 @@ class RetrievalAgent:
             value=string_documents,
         )
         yield sub_status
-
-        # 이후 주요 페이지 전달
-        if len(rerank_documents) > 0:
-            yield rerank_documents[0].model_dump_json()

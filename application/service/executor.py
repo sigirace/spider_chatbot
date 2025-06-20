@@ -1,3 +1,5 @@
+import asyncio
+import json
 from typing import AsyncGenerator, List
 
 from application.agents.retrieval import RetrievalAgent
@@ -42,6 +44,7 @@ class ExecutorService:
         user_msg: HumanMessage,
         app_id: str,
         user_id: str,
+        signal_queue: asyncio.Queue[str],
         verbose: bool,
     ) -> AsyncGenerator[PlanInfo, None]:
         step_info = plan.step_list[idx]
@@ -69,10 +72,12 @@ class ExecutorService:
                 verbose=verbose,
             )
         elif agent == "retrieval":
+
             gen = self.retrieval_agent(
                 user_id=user_id,
                 app_id=app_id,
                 user_query=current_query,
+                queue=signal_queue,
             )
         else:
             step_info.status = "complete"
@@ -106,8 +111,10 @@ class ExecutorService:
         user_msg: HumanMessage,
         app_id: str,
         user_id: str,
+        signal_queue: asyncio.Queue[str],
         verbose: bool = True,
     ) -> AsyncGenerator[PlanInfo, None]:
+
         for idx, _ in enumerate(plan.step_list.root):
             async for state in self._execute_single_step(
                 idx,
@@ -116,6 +123,7 @@ class ExecutorService:
                 user_msg,
                 app_id,
                 user_id,
+                signal_queue,
                 verbose,
             ):
                 yield state

@@ -54,6 +54,7 @@ class MessageGenerator:
         flush_every: int = 20,
         verbose: bool = True,
     ) -> AsyncGenerator[str, None]:
+
         #  1. 유효성 검사
         await self.validator.chat_validator(chat_id=chat_id, user_id=user_id)
 
@@ -106,6 +107,8 @@ class MessageGenerator:
         await self.handler.persist_plan(assistant_msg, plan)
         yield f"data:{plan.model_dump_json(exclude_none=True)}\n\n"
 
+        signal_queue: asyncio.Queue[str] = asyncio.Queue()
+
         #  7. Executor (중간 Plan 상태 스트림)
         async for state in self.executor.execute_plan(
             plan=plan,
@@ -113,12 +116,19 @@ class MessageGenerator:
             user_msg=user_msg,
             app_id=app_id,
             user_id=user_id,
+            signal_queue=signal_queue,
             verbose=verbose,
         ):
             await self.handler.persist_plan(assistant_msg, state)
             yield f"data:{state.model_dump_json(exclude_none=True)}\n\n"
             while not sub_queue.empty():  # 제목 신호 즉시 전달
                 yield f"data:{await sub_queue.get()}\n\n"
+
+            while not signal_queue.empty():
+                yield f"data:{await signal_queue.get()}\n\n"
+
+        while not signal_queue.empty():
+            yield f"data:{await signal_queue.get()}\n\n"
 
         #  8. 음성 생성 서브 태스크
         tts_queue: asyncio.Queue[str] = asyncio.Queue()

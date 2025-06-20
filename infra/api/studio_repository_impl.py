@@ -50,7 +50,7 @@ class StudioRepositoryImpl(IStudioRepository):
                         "query": query,
                         "k": top_k,
                         "app_name": app_id.upper(),
-                        "model_type": "kure",
+                        "model_type": "nomic",
                     },
                     headers={"Authorization": f"Bearer {access_token}"},
                 )
