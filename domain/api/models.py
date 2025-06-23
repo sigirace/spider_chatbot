@@ -30,3 +30,9 @@ class RerankSchema(BaseModel):
     documents: Sequence[SearchResponse] = Field(..., description="문서 집합")
     query: str = Field(..., description="질의 내용")
     top_n: int = Field(..., description="반환할 문서 수")
+
+
+class STTResponse(BaseModel):
+    text: str = Field(..., description="텍스트")
+    token_count: int = Field(..., description="토큰 수")
+    logprob: float = Field(..., description="로그 확률")

@@ -41,8 +41,8 @@ class GeneratorService:
 
         system_msg = langchain_core.messages.SystemMessage(
             PromptTemplate(
-                template=system_prompt, input_variables=["last_steps"]
-            ).format(last_steps=str(plan.step_list))
+                template=system_prompt, input_variables=["last_steps", "tts_summary"]
+            ).format(last_steps=str(plan.step_list), tts_summary=tts_summary)
         )
 
         messages = (

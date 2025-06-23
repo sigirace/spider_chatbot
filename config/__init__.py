@@ -2,6 +2,7 @@ from functools import lru_cache
 
 from config.haiqv_setting import HaiqvSetting
 from config.jwt_setting import JWTSetting
+from config.ml_setting import MLSetting
 from config.mongo_setting import MongoSetting
 from config.rerank_setting import RerankSetting
 from config.studio_setting import StudioSetting
@@ -14,6 +15,7 @@ class Settings:
         self.haiqv = HaiqvSetting()
         self.studio = StudioSetting()
         self.rerank = RerankSetting()
+        self.ml = MLSetting()
 
 
 @lru_cache()

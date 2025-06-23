@@ -6,6 +6,7 @@ from application.agents.translation import TranslationAgent
 from application.chats.chat_list import ChatList
 from application.chats.create_chat import CreateChat
 from application.chats.delete_chat import DeleteChat
+from application.messages.audio_generator import AudioGenerator
 from application.messages.message_generator import MessageGenerator
 from application.messages.message_list import MessageList
 from application.prompts.create_prompt import CreatePrompt
@@ -23,6 +24,7 @@ from application.service.tts_service import TTSService
 from application.service.validator import Validator
 from application.users.login import Login
 from application.users.signup import SignUp
+from infra.api.ml_repository_impl import MLRepositoryImpl
 from infra.api.rerank_repository_impl import RerankRepositoryImpl
 from infra.api.studio_repository_impl import StudioRepositoryImpl
 from infra.implement.chat_repository_impl import ChatInfoRepository
@@ -84,6 +86,7 @@ class Container(containers.DeclarativeContainer):
         token_service=token_service,
     )
     rerank_repository = providers.Factory(RerankRepositoryImpl)
+    ml_repository = providers.Factory(MLRepositoryImpl)
 
     # agent
     retrieval_agent = providers.Factory(
@@ -143,8 +146,16 @@ class Container(containers.DeclarativeContainer):
         chat_info_repository=chat_info_repository,
         llm=haiqv_ollama_llm,
     )
-    stt_service = providers.Factory(STTService)
-    tts_service = providers.Factory(TTSService)
+    stt_service = providers.Factory(
+        STTService,
+        ml_repository=ml_repository,
+    )
+    tts_service = providers.Factory(
+        TTSService,
+        llm=haiqv_ollama_llm,
+        prompt_service=prompt_service,
+        ml_repository=ml_repository,
+    )
 
     # users
     signup = providers.Factory(
@@ -191,6 +202,17 @@ class Container(containers.DeclarativeContainer):
         handler=handler,
         executor=executor,
         generator=generator,
+    )
+    audio_generator = providers.Factory(
+        AudioGenerator,
+        validator=validator,
+        chat_service=chat_service,
+        title_service=title_service,
+        planner=planner,
+        handler=handler,
+        executor=executor,
+        generator=generator,
+        stt_service=stt_service,
         tts_service=tts_service,
     )
 

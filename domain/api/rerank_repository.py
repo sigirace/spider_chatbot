@@ -8,6 +8,7 @@ class IRerankRepository(ABC):
 
     @abstractmethod
     async def compress_documents(
-        self, rerank_schema: RerankSchema
+        self,
+        rerank_schema: RerankSchema,
     ) -> List[SearchResponse]:
         pass

@@ -10,6 +10,7 @@ class ControlSignal(BaseModel):
             # "final_answer_stream_end",
             "title_generation_complete",
             "error_occurred",
+            "stt_completed",
         ],
         Field(description="제어 신호"),
     ]

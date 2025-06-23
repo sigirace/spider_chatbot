@@ -1,7 +1,7 @@
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Optional
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from fastapi import Query
 
 
@@ -11,11 +11,17 @@ from domain.plans.plan import PlanInfo
 
 class MessagesRequestBody(BaseModel):
     user_query: Annotated[str, Query(max_length=10240)]
-    tts_required: Annotated[bool, Query(default=False)]
 
 
 class AudioRequestBody(BaseModel):
-    audio_data: Annotated[str, ...] = Field(description="음성 데이터 경로")
+    user_query: Optional[str] = Field(default=None, description="사용자 질의")
+    audio_path: Optional[str] = Field(default=None, description="오디오 경로")
+
+    @model_validator(mode="after")
+    def validate_either_field_present(cls, values):
+        if not values.user_query and not values.audio_path:
+            raise ValueError("user_query 또는 audio_path 중 하나는 반드시 필요합니다.")
+        return values
 
 
 class BaseMessageResponse(BaseModel):

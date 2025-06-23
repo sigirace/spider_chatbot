@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 from dependency_injector.wiring import Provide, inject
 from fastapi.responses import StreamingResponse
+from application.messages.audio_generator import AudioGenerator
 from application.messages.message_generator import MessageGenerator
 from application.messages.message_list import MessageList
 from application.service.stt_service import STTService
@@ -85,7 +86,6 @@ async def handle_message_request(
                 user_id=user.user_id,
                 user_query=request.user_query,
                 app_id=app_id,
-                tts_required=request.tts_required,
             ):
                 yield chunk
         except Exception as e:
@@ -104,8 +104,7 @@ async def handle_audio_request(
     chat_id: ChatId,
     request: AudioRequestBody,
     user: BaseUser = Depends(get_current_user),
-    message_generator: MessageGenerator = Depends(Provide[Container.message_generator]),
-    stt_service: STTService = Depends(Provide[Container.stt_service]),
+    audio_generator: AudioGenerator = Depends(Provide[Container.audio_generator]),
     app_id: Optional[str] = "ford",
 ):
     """
@@ -113,24 +112,20 @@ async def handle_audio_request(
     STT 및 TTS 요청을 처리
     """
 
-    ## 1. 음성 파일을 STT 서버로 전송
-
-    ## 2. 전달받은 텍스트를 user_query로 사용
-
-    async def sse():
+    async def sse_audio():
         try:
-            async for chunk in message_generator(
+            async for chunk in audio_generator(
                 chat_id=chat_id,
                 user_id=user.user_id,
-                user_query="test",
+                user_query=request.user_query,
+                audio_path=request.audio_path,
                 app_id=app_id,
-                tts_required=True,
             ):
                 yield chunk
         except Exception as e:
             yield f"data: {ControlSignal(control_signal='error_occurred').model_dump_json()}\n\n"
 
     return StreamingResponse(
-        sse(),
+        sse_audio(),
         media_type="text/event-stream",
     )
