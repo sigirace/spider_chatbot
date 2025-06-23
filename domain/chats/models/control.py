@@ -11,9 +11,15 @@ class ControlSignal(BaseModel):
             "title_generation_complete",
             "error_occurred",
             "stt_completed",
+            "primary_page",
         ],
         Field(description="제어 신호"),
     ]
+
+    detail: Annotated[
+        str | None,
+        Field(description="상세 정보"),
+    ] = None
 
 
 # class FinalAnswerControlSignal(ControlSignal):

@@ -65,7 +65,7 @@ class AudioGenerator:
             stt_response = await self.stt_service.transcribe(audio_path)
             user_query = stt_response.text
 
-            yield f"data: {ControlSignal(control_signal='stt_completed').model_dump_json()}\n\n"
+            yield f"data:{ControlSignal(control_signal='stt_completed', detail=user_query).model_dump_json()}\n\n"
 
         #  3. 메시지 저장
         user_msg: HumanMessage = await self.chat_service.save_user_message(

@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from domain.api.models import RerankSchema, SearchResponse
 from domain.api.rerank_repository import IRerankRepository
 from domain.api.studio_repository import IStudioRepository
+from domain.chats.models.control import ControlSignal
 from domain.plans.observation_item import ObservationItem
 from domain.plans.sub_step import SubStepInfo
 from infra.wrapper.haiqv_chat_ollama import HaiqvChatOllama
@@ -170,11 +171,10 @@ class RetrievalAgent:
             top_n=top_n,
         )
         await queue.put(
-            json.dumps(
-                {
-                    "primary_page": rerank_documents[0].page,
-                }
-            )
+            ControlSignal(
+                control_signal="primary_page",
+                detail=str(rerank_documents[0].page),
+            ).model_dump_json()
         )
 
         string_documents = self.format_documents_to_strings(rerank_documents)

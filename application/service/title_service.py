@@ -100,5 +100,6 @@ class TitleService:
             await self._chat_info_repository.save(chat_info=chat_info)
 
             yield ControlSignal(
-                control_signal="title_generation_complete"
+                control_signal="title_generation_complete",
+                detail=generated_title,
             ).model_dump_json()

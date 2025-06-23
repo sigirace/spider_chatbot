@@ -123,7 +123,7 @@ async def handle_audio_request(
             ):
                 yield chunk
         except Exception as e:
-            yield f"data: {ControlSignal(control_signal='error_occurred').model_dump_json()}\n\n"
+            yield f"data: {ControlSignal(control_signal='error_occurred', detail=str(e)).model_dump_json()}\n\n"
 
     return StreamingResponse(
         sse_audio(),
