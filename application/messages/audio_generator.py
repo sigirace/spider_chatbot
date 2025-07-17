@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import AsyncGenerator
 
 from application.service.chat_service import ChatService
@@ -117,6 +118,22 @@ class AudioGenerator:
         yield f"data:{plan.model_dump_json(exclude_none=True)}\n\n"
 
         signal_queue: asyncio.Queue[str] = asyncio.Queue()
+        primary_page = None  # primary_page 변수 초기화
+
+        def extract_primary_page(signal_data: str) -> int | None:
+            """
+            signal_data에서 primary_page 값을 추출합니다.
+            예: '{"control_signal":"primary_page","detail":"3"}' -> 3
+            """
+            try:
+                data = json.loads(signal_data)
+                if data.get("control_signal") == "primary_page":
+                    detail = data.get("detail")
+                    if detail is not None:
+                        return int(detail)
+            except (json.JSONDecodeError, ValueError, TypeError):
+                pass
+            return None
 
         #  9. Executor (중간 Plan 상태 스트림)
         async for state in self.executor.execute_plan(
@@ -134,10 +151,23 @@ class AudioGenerator:
                 yield f"data:{await sub_queue.get()}\n\n"
 
             while not signal_queue.empty():
-                yield f"data:{await signal_queue.get()}\n\n"
+                primary_page = await signal_queue.get()
+                yield f"data:{primary_page}\n\n"
 
         while not signal_queue.empty():
-            yield f"data:{await signal_queue.get()}\n\n"
+            primary_page = await signal_queue.get()
+            yield f"data:{primary_page}\n\n"
+
+        if primary_page is not None:
+            try:
+                extracted_page = extract_primary_page(primary_page)  # 페이지 추출 시도
+                await self.chat_service.update_primary_page(
+                    chat_id=chat_id,
+                    primary_page=int(extracted_page),
+                )
+            except Exception as e:
+                extracted_page = None
+                yield f"data:{ControlSignal(control_signal='error_occurred', detail=str(e)).model_dump_json()}\n\n"
 
         #  10. 음성 생성 서브 태스크
         tts_queue: asyncio.Queue[str] = asyncio.Queue()
@@ -166,6 +196,8 @@ class AudioGenerator:
         # 첫 오디오 청크 도착까지 대기
         await tts_ready.wait()
 
+        TTS_END = False
+
         #  11. Generator (최종 답변 토큰 스트림)
         async for token_json in self.generator.stream_answer(
             app_id=app_id,
@@ -192,7 +224,7 @@ class AudioGenerator:
                 yield f"data:{await sub_queue.get()}\n\n"
 
         #  13. TTS 종료 신호 전달
-        while True:
+        while not TTS_END:
             sig = await tts_queue.get()
             if sig is None:  # sentinel: TTS 종료
                 break

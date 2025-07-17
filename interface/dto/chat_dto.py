@@ -15,6 +15,9 @@ class ChatInfoResponse(BaseModel):
     owner_id: Annotated[str, Field(max_length=100)] = Field(
         description="채팅 소유자의 식별자"
     )
+    primary_page: Annotated[int | None, ...] = Field(
+        default=None, description="RAG 검색 주요 페이지"
+    )
     title: Annotated[str | None, Field(max_length=100)] = Field(
         description="채팅의 타이틀"
     )

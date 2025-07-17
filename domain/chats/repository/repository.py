@@ -70,6 +70,13 @@ class IChatInfoRepository(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    async def update(self, chat_id: ChatId, primary_page: int) -> bool:
+        """
+        chat_id 에 해당하는 doc 를 업데이트한다.
+        """
+        raise NotImplementedError
+
     # @abstractmethod
     # def delete(self, chat_id: str) -> bool:
     #     """

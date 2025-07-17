@@ -1,4 +1,5 @@
 from asyncio import Queue
+import asyncio
 import json
 import logging
 from typing import List
@@ -135,14 +136,21 @@ class RetrievalAgent:
 
         total_documents: List[SearchResponse] = []
 
-        for keyword in keyword_list:
-            similar_documents = await self.studio_repository.get_similar_documents(
+        tasks = [
+            self.studio_repository.get_similar_documents(
                 user_id=user_id,
                 app_id=app_id,
                 query=keyword,
                 top_k=top_k,
             )
-            total_documents.extend(similar_documents)
+            for keyword in keyword_list
+        ]
+
+        results = await asyncio.gather(*tasks)
+
+        total_documents = []
+        for docs in results:
+            total_documents.extend(docs)
 
         unique_documents_dict = {doc.chunk_id: doc for doc in total_documents}
         unique_documents = list(unique_documents_dict.values())

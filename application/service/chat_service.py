@@ -79,3 +79,23 @@ class ChatService:
         assistant_message.id = await self.message_repository.insert(assistant_message)
 
         return assistant_message
+
+    async def update_primary_page(
+        self,
+        chat_id: ChatId,
+        primary_page: int,
+    ) -> bool:
+        """
+        채팅의 primary_page를 업데이트합니다.
+
+        Args:
+            chat_id: 업데이트할 채팅의 ID
+            primary_page: 설정할 primary page 번호
+
+        Returns:
+            bool: 업데이트 성공 여부
+        """
+        return await self.chat_info_repository.update(
+            chat_id=chat_id,
+            primary_page=primary_page,
+        )

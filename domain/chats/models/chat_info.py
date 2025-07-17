@@ -21,6 +21,9 @@ class ChatInfo(BaseModel):
     title: Annotated[str | None, Field(max_length=100)] = Field(
         default=None, description="채팅의 타이틀"
     )
+    primary_page: Annotated[int | None, ...] = Field(
+        default=None, description="RAG 검색 주요 페이지"
+    )
     created_at: Annotated[datetime, Field(description="채팅 생성시간")] = Field(
         default_factory=lambda: datetime.now(UTC)
     )

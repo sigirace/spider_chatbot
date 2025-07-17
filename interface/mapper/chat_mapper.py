@@ -11,6 +11,7 @@ class ChatInfoMapper:
         dto = ChatInfoResponse(
             id=chat_info.id,
             owner_id=chat_info.owner_id,
+            primary_page=chat_info.primary_page,
             title=chat_info.title,
             created_at=chat_info.created_at,
         )

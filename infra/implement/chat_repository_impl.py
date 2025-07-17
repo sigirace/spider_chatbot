@@ -134,3 +134,12 @@ class ChatInfoRepository(IChatInfoRepository):
             return True
         except Exception:
             return False
+
+    async def update(self, chat_id: ChatId, primary_page: int) -> bool:
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(chat_id)}, {"$set": {"primary_page": primary_page}}
+            )
+            return result.modified_count > 0
+        except Exception:
+            return False
