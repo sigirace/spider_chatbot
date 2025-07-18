@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 from application.service.chat_service import ChatService
 from application.service.executor import ExecutorService
@@ -14,14 +14,14 @@ from application.service.validator import Validator
 from common import handle_exceptions
 from domain.chats.models.control import ControlSignal
 from domain.chats.models.identifiers import ChatId
-from domain.plans.plan import PlanInfo
 from domain.messages.models.message import AIMessage, HumanMessage
+from domain.plans.plan import PlanInfo
 
 
 class AudioGenerator:
     """
-    메인 플랜-실행-응답 토큰 스트림과
-    비동기 제목 생성 스트림을 한 이벤트 루프에서 처리한다.
+    음성 기반 채팅 응답 생성기
+    STT -> 플래닝 -> 실행 -> LLM 답변 + TTS 를 스트리밍으로 처리
     """
 
     def __init__(
@@ -46,6 +46,17 @@ class AudioGenerator:
         self.stt_service = stt_service
         self.tts_service = tts_service
 
+    @staticmethod
+    def _extract_primary_page(signal_data: str) -> Optional[int]:
+        """시그널 데이터에서 primary_page 값을 추출"""
+        try:
+            data = json.loads(signal_data)
+            if data.get("control_signal") == "primary_page":
+                return int(data.get("detail"))
+        except (ValueError, TypeError, json.JSONDecodeError):
+            pass
+        return None
+
     @handle_exceptions
     async def __call__(
         self,
@@ -58,17 +69,16 @@ class AudioGenerator:
         flush_every: int = 20,
         verbose: bool = True,
     ) -> AsyncGenerator[str, None]:
-        #  1. 유효성 검사
+        # 1. 유효성 검사
         await self.validator.chat_validator(chat_id=chat_id, user_id=user_id)
 
-        # 2. 음성 파일 처리
+        # 2. 음성 → 텍스트
         if user_query is None:
             stt_response = await self.stt_service.transcribe(audio_path)
             user_query = stt_response.text
-
             yield f"data:{ControlSignal(control_signal='stt_completed', detail=user_query).model_dump_json()}\n\n"
 
-        #  3. 메시지 저장
+        # 3. 메시지 저장
         user_msg: HumanMessage = await self.chat_service.save_user_message(
             chat_id, user_query
         )
@@ -76,37 +86,34 @@ class AudioGenerator:
             chat_id, "progressing"
         )
 
-        #  4. 히스토리 조회
+        # 4. 히스토리 조회
         chat_history, _ = await self.chat_service.get_message_history(chat_id)
 
-        #  5. 제목 생성 서브 태스크
-        sub_queue: asyncio.Queue[str] = asyncio.Queue()
-        title_task = None
+        # 5. 제목 생성 태스크
+        sub_queue: asyncio.Queue = asyncio.Queue()
+        title_task: Optional[asyncio.Task] = None
 
         if await self.chat_service.need_title_generation(chat_id):
 
             async def _produce_title_signal() -> None:
                 async for sig in self.title_service.generate_chat_title(
-                    chat_id=chat_id,
-                    user_message=user_msg,
-                    verbose=verbose,
+                    chat_id=chat_id, user_message=user_msg, verbose=verbose
                 ):
-                    if sig:
-                        await sub_queue.put(sig)
+                    await sub_queue.put(("sub", sig))
+                await sub_queue.put(("sub", None))
 
             title_task = asyncio.create_task(_produce_title_signal())
 
-        #  6. Plan 초기 상태 emit
+        # 6. Plan 초기화 및 상태 업데이트
         plan = PlanInfo()
         await self.handler.persist_plan(assistant_msg, plan)
         yield f"data:{plan.model_dump_json(exclude_none=True)}\n\n"
 
-        #  7. processing 상태
         plan.status = "processing"
         await self.handler.persist_plan(assistant_msg, plan)
         yield f"data:{plan.model_dump_json(exclude_none=True)}\n\n"
 
-        #  8. 플래너
+        # 7. 플래닝
         plan.step_list = await self.planner.create_plan(
             user_msg=user_msg,
             chat_history=chat_history,
@@ -117,25 +124,10 @@ class AudioGenerator:
         await self.handler.persist_plan(assistant_msg, plan)
         yield f"data:{plan.model_dump_json(exclude_none=True)}\n\n"
 
-        signal_queue: asyncio.Queue[str] = asyncio.Queue()
-        primary_page = None  # primary_page 변수 초기화
+        # 8. 플랜 실행
+        signal_queue: asyncio.Queue = asyncio.Queue()
+        primary_page_raw = None
 
-        def extract_primary_page(signal_data: str) -> int | None:
-            """
-            signal_data에서 primary_page 값을 추출합니다.
-            예: '{"control_signal":"primary_page","detail":"3"}' -> 3
-            """
-            try:
-                data = json.loads(signal_data)
-                if data.get("control_signal") == "primary_page":
-                    detail = data.get("detail")
-                    if detail is not None:
-                        return int(detail)
-            except (json.JSONDecodeError, ValueError, TypeError):
-                pass
-            return None
-
-        #  9. Executor (중간 Plan 상태 스트림)
         async for state in self.executor.execute_plan(
             plan=plan,
             chat_history=chat_history,
@@ -147,31 +139,36 @@ class AudioGenerator:
         ):
             await self.handler.persist_plan(assistant_msg, state)
             yield f"data:{state.model_dump_json(exclude_none=True)}\n\n"
-            while not sub_queue.empty():  # 제목 신호 즉시 전달
-                yield f"data:{await sub_queue.get()}\n\n"
 
+            # 제목 시그널 즉시 전달
+            while not sub_queue.empty():
+                _, sig = await sub_queue.get()
+                if sig:
+                    yield f"data:{sig}\n\n"
+
+            # 시그널 처리
             while not signal_queue.empty():
-                primary_page = await signal_queue.get()
-                yield f"data:{primary_page}\n\n"
+                primary_page_raw = await signal_queue.get()
+                yield f"data:{primary_page_raw}\n\n"
 
+        # 남은 시그널 처리
         while not signal_queue.empty():
-            primary_page = await signal_queue.get()
-            yield f"data:{primary_page}\n\n"
+            primary_page_raw = await signal_queue.get()
+            yield f"data:{primary_page_raw}\n\n"
 
-        if primary_page is not None:
+        # primary page 업데이트
+        if primary_page_raw is not None:
             try:
-                extracted_page = extract_primary_page(primary_page)  # 페이지 추출 시도
-                await self.chat_service.update_primary_page(
-                    chat_id=chat_id,
-                    primary_page=int(extracted_page),
-                )
+                pp = self._extract_primary_page(primary_page_raw)
+                if pp is not None:
+                    await self.chat_service.update_primary_page(
+                        chat_id=chat_id, primary_page=pp
+                    )
             except Exception as e:
-                extracted_page = None
                 yield f"data:{ControlSignal(control_signal='error_occurred', detail=str(e)).model_dump_json()}\n\n"
 
-        #  10. 음성 생성 서브 태스크
-        tts_queue: asyncio.Queue[str] = asyncio.Queue()
-        tts_ready = asyncio.Event()
+        # 9. TTS 및 답변 생성
+        output_queue: asyncio.Queue = asyncio.Queue()
 
         tts_summary = await self.tts_service.summary(
             chat_history=chat_history,
@@ -179,53 +176,69 @@ class AudioGenerator:
             plan=plan,
         )
 
+        tts_ready = asyncio.Event()
+
         async def _produce_tts_signal() -> None:
             first = True
-            async for sig in self.tts_service.convert(
-                text=tts_summary,
+            async for sig in self.tts_service.convert(text=tts_summary):
+                await output_queue.put(("tts", sig))
+                if first:
+                    tts_ready.set()
+                    first = False
+            await output_queue.put(("tts", None))
+
+        async def _produce_gen_signal() -> None:
+            async for token_json in self.generator.stream_answer(
+                app_id=app_id,
+                user_id=user_id,
+                chat_history=chat_history,
+                user_msg=user_msg,
+                assistant_msg=assistant_msg,
+                tts_summary=tts_summary,
+                plan=plan,
+                flush_every=flush_every,
             ):
-                if sig:
-                    await tts_queue.put(sig)
-                    if first:
-                        tts_ready.set()
-                        first = False
-            await tts_queue.put(None)
+                await output_queue.put(("gen", token_json))
+            await output_queue.put(("gen", None))
 
-        asyncio.create_task(_produce_tts_signal())
+        # 태스크 시작
+        tts_task = asyncio.create_task(_produce_tts_signal())
+        gen_task = asyncio.create_task(_produce_gen_signal())
 
-        # 첫 오디오 청크 도착까지 대기
+        # 첫 오디오 청크 대기
         await tts_ready.wait()
 
-        TTS_END = False
+        # 10. 스트림 출력
+        gen_done = tts_done = False
+        try:
+            while not (gen_done and tts_done):
+                src, payload = await output_queue.get()
 
-        #  11. Generator (최종 답변 토큰 스트림)
-        async for token_json in self.generator.stream_answer(
-            app_id=app_id,
-            user_id=user_id,
-            chat_history=chat_history,
-            user_msg=user_msg,
-            assistant_msg=assistant_msg,
-            tts_summary=tts_summary,
-            plan=plan,
-            flush_every=flush_every,
-        ):
-            yield f"data:{token_json}\n\n"
+                if payload is None:
+                    if src == "gen":
+                        gen_done = True
+                    elif src == "tts":
+                        tts_done = True
+                    continue
 
-            while not tts_queue.empty():  # 토큰 중에도 전달
-                yield f"data:{await tts_queue.get()}\n\n"
+                yield f"data:{payload}\n\n"
 
-        assistant_msg.status = "complete"
-        await self.handler.message_repository.update(assistant_msg)
+                # 제목 시그널 처리
+                while not sub_queue.empty():
+                    _, sig = await sub_queue.get()
+                    if sig:
+                        yield f"data:{sig}\n\n"
 
-        #  12. 제목 태스크 마무리
-        if title_task:
-            await title_task
-            while not sub_queue.empty():
-                yield f"data:{await sub_queue.get()}\n\n"
+        finally:
+            # 태스크 정리
+            for task in (tts_task, gen_task, title_task):
+                if task and not task.done():
+                    task.cancel()
+            await asyncio.gather(
+                *(t for t in (tts_task, gen_task, title_task) if t),
+                return_exceptions=True,
+            )
 
-        #  13. TTS 종료 신호 전달
-        while not TTS_END:
-            sig = await tts_queue.get()
-            if sig is None:  # sentinel: TTS 종료
-                break
-            yield f"data:{sig}\n\n"
+            # 상태 업데이트
+            assistant_msg.status = "complete"
+            await self.handler.message_repository.update(assistant_msg)
