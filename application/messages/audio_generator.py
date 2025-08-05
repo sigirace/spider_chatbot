@@ -12,6 +12,7 @@ from application.service.title_service import TitleService
 from application.service.tts_service import TTSService
 from application.service.validator import Validator
 from common import handle_exceptions
+from domain.api.models import RerankOutput
 from domain.chats.models.control import ControlSignal
 from domain.chats.models.identifiers import ChatId
 from domain.messages.models.message import AIMessage, HumanMessage
@@ -146,24 +147,21 @@ class AudioGenerator:
                 if sig:
                     yield f"data:{sig}\n\n"
 
-            # 시그널 처리
-            while not signal_queue.empty():
-                primary_page_raw = await signal_queue.get()
-                yield f"data:{primary_page_raw}\n\n"
-
-        # 남은 시그널 처리
         while not signal_queue.empty():
-            primary_page_raw = await signal_queue.get()
-            yield f"data:{primary_page_raw}\n\n"
+            primary_page_raw: list[RerankOutput] = await signal_queue.get()
 
         # primary page 업데이트
-        if primary_page_raw is not None:
+        if primary_page_raw is not None and len(primary_page_raw) > 0:
             try:
-                pp = self._extract_primary_page(primary_page_raw)
+                pp = primary_page_raw[0].page
+
                 if pp is not None:
                     await self.chat_service.update_primary_page(
                         chat_id=chat_id, primary_page=pp
                     )
+                    assistant_msg.primary_page_list = primary_page_raw
+                    yield f"data:{ControlSignal(control_signal='primary_page', detail=str(pp)).model_dump_json()}\n\n"
+
             except Exception as e:
                 yield f"data:{ControlSignal(control_signal='error_occurred', detail=str(e)).model_dump_json()}\n\n"
 
@@ -241,4 +239,5 @@ class AudioGenerator:
 
             # 상태 업데이트
             assistant_msg.status = "complete"
+
             await self.handler.message_repository.update(assistant_msg)

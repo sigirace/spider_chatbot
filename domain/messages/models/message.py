@@ -5,6 +5,7 @@ import langchain_core.messages
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic import TypeAdapter
 
+from domain.api.models import RerankOutput
 from domain.chats.models.identifiers import ChatId
 
 from domain.messages.models.identifiers import MessageId
@@ -77,6 +78,9 @@ class AIMessage(BaseMessage):
     ] = Field(default="pending")
     plan: Annotated[PlanInfo | None, Field()] = Field(
         default=None, description="메시지의 처리 계획 및 도중의 결과"
+    )
+    primary_page_list: Annotated[list[RerankOutput] | None, Field()] = Field(
+        default=None, description="메시지의 주요 페이지"
     )
 
 

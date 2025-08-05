@@ -18,6 +18,7 @@ class MessageMapper:
                     content=message.content,
                     created_at=message.created_at,
                     metadata=message.metadata,
+                    primary_page_list=message.primary_page_list,
                 )
             case _:
                 """

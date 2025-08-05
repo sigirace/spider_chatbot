@@ -38,17 +38,11 @@ class PlannerService:
 
         system_prompt = await self._prompt_service.get_prompt("planner_system")
 
-        tool_description = await self._prompt_service.make_tool_prompt(
-            app_id=app_id,
-            user_id=user_id,
-        )
-
         tmpl = PromptTemplate(
             template=system_prompt,
             input_variables=[
                 "user_msg",
                 "chat_history",
-                "tool_description",
                 # "description",
                 # "keywords",
             ],
@@ -61,7 +55,6 @@ class PlannerService:
                 if len(chat_history) < 1
                 else [m.to_langchain_message() for m in chat_history]
             ),
-            tool_description=tool_description,
         )
 
         plan = await self._llm.ainvoke(

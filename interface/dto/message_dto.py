@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field, model_validator
 from fastapi import Query
 
 
+from domain.api.models import RerankOutput
 from domain.messages.models.identifiers import MessageId
 from domain.plans.plan import PlanInfo
 
@@ -68,6 +69,9 @@ class AIMessageResponse(BaseMessageResponse):
     ]
     plan: Annotated[PlanInfo | None, ...] = Field(
         description="메시지의 처리 계획 및 도중의 결과"
+    )
+    primary_page_list: Annotated[list[RerankOutput] | None, ...] = Field(
+        default=None, description="메시지의 주요 페이지"
     )
 
 

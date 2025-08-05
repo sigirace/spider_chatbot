@@ -6,7 +6,7 @@ from typing import List
 from pydantic import BaseModel, Field
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.messages import HumanMessage, SystemMessage
-from domain.api.models import RerankSchema, SearchResponse
+from domain.api.models import RerankOutput, RerankSchema, SearchResponse
 from domain.api.rerank_repository import IRerankRepository
 from domain.api.studio_repository import IStudioRepository
 from domain.chats.models.control import ControlSignal
@@ -178,12 +178,18 @@ class RetrievalAgent:
             query=user_query,
             top_n=top_n,
         )
-        await queue.put(
-            ControlSignal(
-                control_signal="primary_page",
-                detail=str(rerank_documents[0].page),
-            ).model_dump_json()
-        )
+
+        rerank_list = []
+
+        for doc in rerank_documents:
+            rerank_list.append(
+                RerankOutput(
+                    document_name=doc.document_name,
+                    page=doc.page,
+                )
+            )
+
+        await queue.put(rerank_list)
 
         string_documents = self.format_documents_to_strings(rerank_documents)
 
